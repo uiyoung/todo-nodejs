@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>todo</title>
+    <style>
+      #title,
+      #content,
+      #modal-title,
+      #modal-content {
+        width: 200px;
+      }
+
+      ul {
+        list-style-type: none;
+        padding-left: 4px;
+      }
+
+      .title-label {
+        font-weight: bold;
+      }
+
+      .content-label {
+        padding-left: 20px;
+        display: block;
+        font-size: 14px;
+      }
+
+      li:hover,
+      .btn:hover {
+        cursor: pointer;
+        font-size: 110%;
+        font-style: italic;
+      }
+
+      .completed {
+        text-decoration: line-through;
+      }
+    </style>
+  </head>
+
+  <body>
+    <h3>TODO</h3>
+    <input type="text" name="title" id="title" placeholder="todo title" /><br />
+    <textarea name="content" id="content" cols="22" rows="4" placeholder="content"></textarea><br />
+    <button id="new-btn" type="submit">add</button>
+    <hr />
+    <ul id="todo-list"></ul>
+
+    <dialog id="todoDialog">
+      <form method="dialog">
+        <input type="text" name="title" id="modal-title" placeholder="todo title" /><br />
+        <textarea
+          name="content"
+          id="modal-content"
+          cols="22"
+          rows="4"
+          placeholder="content"
+        ></textarea
+        ><br />
+        <button id="modal-ok">OK</button>
+        <button>CANCEL</button>
+      </form>
+    </dialog>
+  </body>
+
+  <script>
+    const todoDialog = document.querySelector('#todoDialog');
+
+    async function getTodos() {
+      try {
+        const response = await fetch('/todo');
+        const result = await response.json();
+        return result;
+      } catch (error) {
+        console.error(error);
+      }
+    }
+
+    async function renderTodos() {
+      const todos = await getTodos();
+      const ul = document.querySelector('#todo-list');
+      ul.innerHTML = '';
+
+      todos.forEach((todo) => {
+        const li = document.createElement('li');
+        ul.append(li);
+
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.id = `cbx-${todo.id}`;
+        checkbox.checked = todo.isDone;
+        checkbox.addEventListener('change', async () => {
+          const isDone = checkbox.checked;
+          try {
+            const response = await fetch(`/todo/${todo.id}`, {
+              method: 'PUT',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ isDone: isDone }),
+            });
+            const result = await response.json();
+            renderTodos();
+          } catch (error) {
+            console.error(error);
+          }
+        });
+        li.append(checkbox);
+
+        const titleLabel = document.createElement('label');
+        titleLabel.htmlFor = `cbx-${todo.id}`;
+        titleLabel.innerHTML = todo.title;
+        titleLabel.className = todo.isDone ? 'title-label completed' : 'title-label';
+        li.append(titleLabel);
+
+        const modifySpan = document.createElement('span');
+        modifySpan.innerHTML = '✏️';
+        modifySpan.className = 'btn';
+        modifySpan.addEventListener('click', () => {
+          const modifyTitle = document.querySelector('#modal-title');
+          modifyTitle.value = todo.title;
+
+          const modifyContent = document.querySelector('#modal-content');
+          modifyContent.value = todo.content;
+
+          const modifyOk = document.querySelector('#modal-ok');
+          modifyOk.addEventListener('click', async () => {
+            const payload = { title: modifyTitle.value, content: modifyContent.value };
+            const response = await fetch(`/todo/${todo.id}`, {
+              method: 'PATCH',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify(payload),
+            });
+            const result = await response.json();
+            console.log(result);
+            renderTodos();
+          });
+
+          todoDialog.showModal();
+        });
+        li.append(modifySpan);
+
+        const deleteSpan = document.createElement('span');
+        deleteSpan.innerHTML = '🗑️';
+        deleteSpan.className = 'btn';
+        deleteSpan.addEventListener('click', async () => {
+          if (!confirm(`do you want to delete ${todo.title}?`)) {
+            return;
+          }
+          const response = await fetch(`/todo/${todo.id}`, {
+            method: 'DELETE',
+          });
+          const result = await response.json();
+          console.log(result);
+          renderTodos();
+        });
+        li.append(deleteSpan);
+
+        const contentLabel = document.createElement('label');
+        contentLabel.innerHTML = todo.content;
+        contentLabel.className = todo.isDone ? 'content-label completed' : 'content-label';
+        contentLabel.htmlFor = `cbx-${todo.id}`;
+        li.append(contentLabel);
+      });
+    }
+
+    const newBtn = document.querySelector('#new-btn');
+    newBtn.addEventListener('click', async () => {
+      const title = document.querySelector('#title');
+      const content = document.querySelector('#content');
+      if (title.value == '' || title.value == null) {
+        alert('please enter a title.');
+        return;
+      }
+
+      if (content.value == '' || content.value == null) {
+        alert('please enter the content.');
+        return;
+      }
+
+      const payload = { title: title.value, content: content.value };
+      try {
+        const response = await fetch('/todo', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload),
+        });
+        const result = await response.json();
+        console.log(result);
+        title.value = '';
+        content.value = '';
+        renderTodos();
+      } catch (error) {
+        console.error(error);
+      }
+    });
+
+    renderTodos();
+  </script>
+</html>
