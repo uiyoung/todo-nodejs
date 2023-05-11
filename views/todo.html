@@ -66,7 +66,7 @@
 
   async function getTodos() {
     try {
-      const response = await fetch(`/${subdirectoryUrl}/todo`);
+      const response = await fetch(`${subdirectoryUrl}/todo`);
       const result = await response.json();
       return result;
     } catch (error) {
