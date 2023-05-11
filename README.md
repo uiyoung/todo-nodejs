@@ -5,6 +5,7 @@ simple crud todolist with nodejs, mysql, prisma
 ### How to Run
 
 create `.env` file and add `DATABASE_URL`
+
 e.g.
 
 ```
