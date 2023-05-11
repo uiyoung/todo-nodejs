@@ -11,3 +11,8 @@ e.g.
 ```
 DATABASE_URL=mysql://USER:PASSWORD@HOST:PORT/DATABASE
 ```
+
+```bash
+$ npm i
+$ npm start
+```
